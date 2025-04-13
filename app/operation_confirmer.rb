@@ -1,7 +1,11 @@
 class OperationConfirmer
   
+  def initialize(db)
+    @db = db
+  end
+
   def request_for_confirmation(input_data)
-    customer = User.new(input_data['user_id'])
+    customer = User.new(input_data['user_id'], @db)
     customer_loyalty = LoyaltyLeves.new(customer.template_id)
   
     user_info = {
@@ -11,7 +15,7 @@ class OperationConfirmer
     }
   
     result = CalculateOrder.new(input_data)
-    result.calculate(DB[:products])
+    result.calculate(@db[:products])
 
     without_noloyalty = result.summ_product - result.noloyalty_product
     cashback_loyalty = (without_noloyalty) * (customer_loyalty.cashback / 100.0) 
@@ -49,7 +53,7 @@ class OperationConfirmer
 
 
   def confirm_operation(input_data)
-    operation = DB[:operations].where(id: input_data['operation_id']).first
+    operation = @db[:operations].where(id: input_data['operation_id']).first
     raise "Операция не найдена" unless operation
     
     raise "Операция не принадлежит пользователю" if operation[:user_id] != input_data['user']['id']
@@ -59,12 +63,13 @@ class OperationConfirmer
     
     raise "Недостаточно бонусов для списания" if write_off > available
     
-    DB[:operations].where(id: input_data['operation_id']).update(
+    @db[:operations].where(id: input_data['operation_id']).update(
       write_off: write_off,
       done: true,
     )
-        new_bonus = input_data['user']['bonus'].to_f - write_off + operation[:cashback].to_f
-    DB[:users].where(id: input_data['user']['id']).update(bonus: new_bonus)
+    
+    new_bonus = input_data['user']['bonus'].to_f - write_off + operation[:cashback].to_f
+    @db[:users].where(id: input_data['user']['id']).update(bonus: new_bonus)
     
     {
       status: 'success',
@@ -86,7 +91,7 @@ class OperationConfirmer
 
 
   def insert_operation(res, cashback_loyalty, discount_user, available, user_id)
-    DB[:Operations].insert(
+    @db[:Operations].insert(
       user_id: user_id, 
       cashback: (res.cashback_product + cashback_loyalty).round(2), 
       cashback_percent: ((res.cashback_product + cashback_loyalty) / res.summ_product * 100).round(2), 

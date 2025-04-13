@@ -1,6 +1,10 @@
-source "https://rubygems.org"
+source 'https://rubygems.org'
 
+gem 'puma'
+gem 'json'
 gem 'sinatra'
-gem 'sequel'
+gem 'sinatra-contrib'
 gem 'sqlite3'
 gem 'rake'
+gem 'rack'
+gem 'sequel'
